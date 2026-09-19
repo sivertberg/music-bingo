@@ -11,6 +11,28 @@ import {
 } from "@/lib/bingo";
 import { getSong } from "@/lib/songs";
 
+const MAX_BINGO_MILESTONES = 3;
+
+function storageKey(code: string, name: string) {
+  return `bingo-${code}-${name}`;
+}
+
+function loadMarked(code: string, name: string): boolean[] | null {
+  try {
+    const raw = localStorage.getItem(storageKey(code, name));
+    if (!raw) return null;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length === TOTAL_CELLS) return arr;
+  } catch {}
+  return null;
+}
+
+function saveMarked(code: string, name: string, marked: boolean[]) {
+  try {
+    localStorage.setItem(storageKey(code, name), JSON.stringify(marked));
+  } catch {}
+}
+
 function Confetti() {
   const colors = ["#a855f7", "#fbbf24", "#ec4899", "#34d399", "#60a5fa"];
   return (
@@ -42,16 +64,26 @@ export default function PlayPage({
 
   const [board] = useState(() => generateBoard(playerName, code));
   const [marked, setMarked] = useState<boolean[]>(() => {
+    const saved = loadMarked(code, playerName);
+    if (saved) return saved;
     const initial = new Array(TOTAL_CELLS).fill(false);
     initial[FREE_SPACE_INDEX] = true;
     return initial;
   });
-  const [bingoCount, setBingoCount] = useState(0);
-  const [isFullBoard, setIsFullBoard] = useState(false);
+  const [bingoCount, setBingoCount] = useState(() => {
+    const saved = loadMarked(code, playerName);
+    if (saved) return countCompletedLines(saved).count;
+    return 0;
+  });
+  const [isFullBoard, setIsFullBoard] = useState(() => {
+    const saved = loadMarked(code, playerName);
+    if (saved) return saved.every((m) => m);
+    return false;
+  });
   const [completedCells, setCompletedCells] = useState<Set<number>>(new Set());
   const [showConfetti, setShowConfetti] = useState(false);
   const [celebration, setCelebration] = useState<string | null>(null);
-  const prevCountRef = useRef(0);
+  const prevCountRef = useRef(bingoCount);
 
   const toggleCell = useCallback(
     (index: number) => {
@@ -66,6 +98,8 @@ export default function PlayPage({
   );
 
   useEffect(() => {
+    saveMarked(code, playerName, marked);
+
     const result = countCompletedLines(marked);
 
     const allCompletedCells = new Set<number>();
@@ -76,11 +110,12 @@ export default function PlayPage({
 
     if (result.isFullBoard && !isFullBoard) {
       setIsFullBoard(true);
+      setBingoCount(result.count);
       setCelebration("FULL BOARD!");
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 5000);
       setTimeout(() => setCelebration(null), 3000);
-    } else if (result.count > prevCountRef.current) {
+    } else if (result.count > prevCountRef.current && result.count <= MAX_BINGO_MILESTONES) {
       setBingoCount(result.count);
       const label = result.count === 1
         ? "BINGO!"
@@ -89,9 +124,19 @@ export default function PlayPage({
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 4000);
       setTimeout(() => setCelebration(null), 2500);
+    } else {
+      setBingoCount(result.count);
     }
     prevCountRef.current = result.count;
-  }, [marked, isFullBoard]);
+  }, [marked, isFullBoard, code, playerName]);
+
+  const statusLabel = isFullBoard
+    ? "🏆 FULL BOARD"
+    : bingoCount >= MAX_BINGO_MILESTONES
+      ? `${MAX_BINGO_MILESTONES}x Bingo — next: Full Board!`
+      : bingoCount > 0
+        ? `${bingoCount}x Bingo`
+        : null;
 
   return (
     <main className="flex-1 flex flex-col items-center p-3 gap-3">
@@ -113,12 +158,10 @@ export default function PlayPage({
         </div>
       )}
 
-      {bingoCount > 0 && !celebration && (
+      {statusLabel && !celebration && (
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-bingo-gold font-bold">
-            {isFullBoard ? "🏆 FULL BOARD" : `${bingoCount}x Bingo`}
-          </span>
-          {!isFullBoard && (
+          <span className="text-bingo-gold font-bold">{statusLabel}</span>
+          {!isFullBoard && bingoCount < MAX_BINGO_MILESTONES && (
             <span className="text-foreground/40">— keep going!</span>
           )}
         </div>
