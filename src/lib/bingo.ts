@@ -47,28 +47,30 @@ export function generateDrawSequence(gameCode: string): number[] {
   return numbers;
 }
 
-export function checkBingo(marked: boolean[]): { hasBingo: boolean; winningLine: number[] | null } {
+export function getAllLines(): number[][] {
   const lines: number[][] = [];
-
-  // Rows
   for (let r = 0; r < BOARD_SIZE; r++) {
     lines.push(Array.from({ length: BOARD_SIZE }, (_, c) => r * BOARD_SIZE + c));
   }
-  // Columns
   for (let c = 0; c < BOARD_SIZE; c++) {
     lines.push(Array.from({ length: BOARD_SIZE }, (_, r) => r * BOARD_SIZE + c));
   }
-  // Diagonals
   lines.push(Array.from({ length: BOARD_SIZE }, (_, i) => i * BOARD_SIZE + i));
   lines.push(Array.from({ length: BOARD_SIZE }, (_, i) => i * BOARD_SIZE + (BOARD_SIZE - 1 - i)));
+  return lines;
+}
 
-  for (const line of lines) {
-    if (line.every((idx) => marked[idx])) {
-      return { hasBingo: true, winningLine: line };
-    }
-  }
-
-  return { hasBingo: false, winningLine: null };
+export function countCompletedLines(marked: boolean[]): {
+  count: number;
+  completedLines: number[][];
+  isFullBoard: boolean;
+} {
+  const lines = getAllLines();
+  const completedLines = lines.filter((line) =>
+    line.every((idx) => marked[idx])
+  );
+  const isFullBoard = marked.every((m) => m);
+  return { count: completedLines.length, completedLines, isFullBoard };
 }
 
 export function generateGameCode(): string {
