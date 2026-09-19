@@ -9,6 +9,7 @@ import {
   TOTAL_CELLS,
   FREE_SPACE_INDEX,
 } from "@/lib/bingo";
+import { getSong } from "@/lib/songs";
 
 function Confetti() {
   const colors = ["#a855f7", "#fbbf24", "#ec4899", "#34d399", "#60a5fa"];
@@ -72,7 +73,7 @@ export default function PlayPage({
   }, [marked, bingo]);
 
   return (
-    <main className="flex-1 flex flex-col items-center p-4 gap-4">
+    <main className="flex-1 flex flex-col items-center p-3 gap-3">
       {showConfetti && <Confetti />}
 
       <div className="text-center">
@@ -92,7 +93,7 @@ export default function PlayPage({
       )}
 
       <div
-        className="grid gap-1.5 w-full max-w-sm aspect-square"
+        className="grid gap-1 w-full max-w-md"
         style={{
           gridTemplateColumns: `repeat(${BOARD_SIZE}, 1fr)`,
         }}
@@ -101,33 +102,47 @@ export default function PlayPage({
           const isFree = index === FREE_SPACE_INDEX;
           const isMarked = marked[index];
           const isWinning = winningLine?.includes(index);
+          const song = num > 0 ? getSong(num) : null;
 
           return (
             <button
               key={index}
               onClick={() => toggleCell(index)}
               className={`
-                rounded-lg font-bold text-lg transition-all duration-150 aspect-square
-                flex items-center justify-center
+                rounded-lg transition-all duration-150 aspect-square
+                flex flex-col items-center justify-center p-0.5 overflow-hidden
                 ${
                   isFree
-                    ? "bg-accent/40 text-accent-glow cursor-default text-xs"
+                    ? "bg-accent/40 text-accent-glow cursor-default"
                     : isMarked
                       ? isWinning
-                        ? "bg-bingo-gold text-black scale-105"
-                        : "bg-marked text-white scale-95"
+                        ? "bg-bingo-gold text-black scale-[1.03]"
+                        : "bg-marked text-white scale-[0.97]"
                       : "bg-surface-light hover:bg-surface-light/70 text-foreground active:scale-90"
                 }
               `}
             >
-              {isFree ? "FREE" : num}
+              {isFree ? (
+                <span className="text-xs font-bold">FREE</span>
+              ) : (
+                <>
+                  <span className="text-[9px] leading-tight font-semibold text-center line-clamp-2 px-0.5">
+                    {song?.title}
+                  </span>
+                  <span className={`text-[7px] leading-tight mt-0.5 ${
+                    isMarked ? (isWinning ? "text-black/50" : "text-white/50") : "text-foreground/40"
+                  }`}>
+                    {song?.artist}
+                  </span>
+                </>
+              )}
             </button>
           );
         })}
       </div>
 
       <p className="text-foreground/40 text-xs text-center">
-        Tap numbers as they&apos;re called. Get 5 in a row to win!
+        Tap songs as they&apos;re called. Get 5 in a row to win!
       </p>
     </main>
   );

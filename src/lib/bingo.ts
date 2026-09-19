@@ -1,7 +1,7 @@
 export const BOARD_SIZE = 5;
 export const TOTAL_CELLS = BOARD_SIZE * BOARD_SIZE;
 export const FREE_SPACE_INDEX = 12; // center of 5x5
-export const MAX_NUMBER = 100;
+export const MAX_NUMBER = 99;
 
 export function seededRandom(seed: number) {
   let s = seed;
